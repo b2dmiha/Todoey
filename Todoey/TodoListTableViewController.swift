@@ -13,6 +13,8 @@ class TodoListTableViewController: UITableViewController, UITextFieldDelegate {
     //MARK: - Variables
     var items = [String]()
     
+    let defaults = UserDefaults.standard
+    
     var addItemAlert: UIAlertController!
 
     //MARK: - Lifecycle Methods
@@ -21,9 +23,16 @@ class TodoListTableViewController: UITableViewController, UITextFieldDelegate {
         
         configureTableView()
         configureAddItemAlert()
+        fetchItemsFromUserDefaults()
     }
     
     //MARK: - Custom Methods
+    func fetchItemsFromUserDefaults() {
+        if let items = defaults.array(forKey: "TodoList") as? [String] {
+            self.items = items
+        }
+    }
+    
     func configureTableView() {
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 80.0
@@ -46,6 +55,8 @@ class TodoListTableViewController: UITableViewController, UITextFieldDelegate {
             action.isEnabled = false
 
             self.items.append(itemText)
+            
+            self.defaults.set(self.items, forKey: "TodoList")
             
             DispatchQueue.main.async {
                 self.tableView.reloadData()
