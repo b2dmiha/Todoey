@@ -8,22 +8,63 @@
 
 import UIKit
 
-class TodoListTableViewController: UITableViewController {
+class TodoListTableViewController: UITableViewController, UITextFieldDelegate {
     
     //MARK: - Variables
-    var items = ["Item 1", "Item 2", "Item 3", "Item 4", "Item 5", "Item 6", "Item 7", "Item 8", "Item 9", "Item 10", "Item 11", "Item 12", "Item 13", "Item 14", "Item 15", "Item 16", "Item 17", "Item 18", "Item 19", "Item 20"]
+    var items = [String]()
+    
+    var addItemAlert: UIAlertController!
 
     //MARK: - Lifecycle Methods
     override func viewDidLoad() {
         super.viewDidLoad()
         
         configureTableView()
+        configureAddItemAlert()
     }
     
     //MARK: - Custom Methods
     func configureTableView() {
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 80.0
+    }
+    
+    func configureAddItemAlert() {
+        addItemAlert = UIAlertController(title: "Add New Todoey Item", message: "", preferredStyle: .alert)
+        
+        addItemAlert.addTextField { (textField) in
+            textField.placeholder = "Enter Todoey Item Description"
+            textField.delegate = self
+        }
+        
+        let addItemAction = UIAlertAction(title: "Add Item", style: .default) { (action) in
+            guard let textField = self.addItemAlert.textFields?.first,
+                  let itemText = textField.text?.trimmingCharacters(in: .whitespaces)
+            else { return }
+            
+            textField.text = ""
+            action.isEnabled = false
+
+            self.items.append(itemText)
+            
+            DispatchQueue.main.async {
+                self.tableView.reloadData()
+            }
+        }
+        
+        addItemAction.isEnabled = false
+        
+        addItemAlert.addAction(addItemAction)
+        
+        addItemAlert.addAction(UIAlertAction(title: "Cancel", style: .destructive, handler: { (action) in
+            guard let textField = self.addItemAlert.textFields?.first
+            else { return }
+            
+            textField.text = ""
+            
+            let addItemAction = self.addItemAlert.actions[0]
+            addItemAction.isEnabled = false
+        }))
     }
     
     //MARK: - TableView DataSource Methods
@@ -55,6 +96,27 @@ class TodoListTableViewController: UITableViewController {
         }
         
         tableView.deselectRow(at: indexPath, animated: true)
+    }
+    
+    //MARK: - Actions
+    @IBAction func addItemPressed(_ sender: UIBarButtonItem) {
+        present(addItemAlert, animated: true, completion: nil)
+    }
+    
+    //MARK: - TextField Delegate Methods
+    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+
+        let addItemAction = addItemAlert.actions[0]
+        let text = textField.text! + string
+        
+        if range == NSRange(location: 0, length: 1) ||
+           text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            addItemAction.isEnabled = false
+        } else {
+            addItemAction.isEnabled = true
+        }
+
+        return true
     }
 }
 
