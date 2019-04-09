@@ -11,25 +11,47 @@ import UIKit
 class TodoListTableViewController: UITableViewController, UITextFieldDelegate {
     
     //MARK: - Variables
-    var items = [String]()
+    var items = [Item]()
     
-    let defaults = UserDefaults.standard
+    let dataFilePathURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("TodoList.plist")
     
     var addItemAlert: UIAlertController!
 
     //MARK: - Lifecycle Methods
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+    
         configureTableView()
         configureAddItemAlert()
-        fetchItemsFromUserDefaults()
+        loadItems()
     }
     
     //MARK: - Custom Methods
-    func fetchItemsFromUserDefaults() {
-        if let items = defaults.array(forKey: "TodoList") as? [String] {
-            self.items = items
+    func loadItems() {
+        if let dataFilePathURL = dataFilePathURL {
+            do {
+                let data = try Data(contentsOf: dataFilePathURL)
+                
+                let decoder = PropertyListDecoder()
+                self.items = try decoder.decode([Item].self, from: data)
+            } catch let error {
+                print(error.localizedDescription)
+            }
+        }
+    }
+    
+    func saveItems() {
+        let encoder = PropertyListEncoder()
+        
+        do {
+            let data = try encoder.encode(items)
+            
+            if let dataFilePathURL = dataFilePathURL {
+                try data.write(to: dataFilePathURL)
+            }
+            
+        } catch let error {
+            print(error.localizedDescription)
         }
     }
     
@@ -54,13 +76,12 @@ class TodoListTableViewController: UITableViewController, UITextFieldDelegate {
             textField.text = ""
             action.isEnabled = false
 
-            self.items.append(itemText)
+            let newItem = Item(title: itemText)
+            self.items.append(newItem)
+
+            self.saveItems()
             
-            self.defaults.set(self.items, forKey: "TodoList")
-            
-            DispatchQueue.main.async {
-                self.tableView.reloadData()
-            }
+            self.tableView.reloadData()
         }
         
         addItemAction.isEnabled = false
@@ -90,23 +111,21 @@ class TodoListTableViewController: UITableViewController, UITextFieldDelegate {
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
         let itemCell = tableView.dequeueReusableCell(withIdentifier: "ToDoItemCell", for: indexPath)
-        itemCell.textLabel?.text = items[indexPath.row]
+        
+        let item = items[indexPath.row]
+        
+        itemCell.textLabel?.text = item.title
+        itemCell.accessoryType = item.done ? .checkmark : .none
 
         return itemCell
     }
     
     //MARK: - TableView Delegate Methods
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        if let selectedCell = tableView.cellForRow(at: indexPath) {
-            
-            if selectedCell.accessoryType == .checkmark {
-                selectedCell.accessoryType = .none
-            } else {
-                selectedCell.accessoryType = .checkmark
-            }
-        }
-        
         tableView.deselectRow(at: indexPath, animated: true)
+        items[indexPath.row].done = !items[indexPath.row].done
+        saveItems()
+        tableView.reloadRows(at: [indexPath], with: .automatic)
     }
     
     //MARK: - Actions
