@@ -16,7 +16,7 @@ class TodoListTableViewController: UITableViewController, UITextFieldDelegate {
     let dataFilePathURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("TodoList.plist")
     
     var addItemAlert: UIAlertController!
-
+    
     //MARK: - Lifecycle Methods
     override func viewDidLoad() {
         super.viewDidLoad()
