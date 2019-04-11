@@ -7,15 +7,19 @@
 //
 
 import UIKit
+import CoreData
 
-class TodoListTableViewController: UITableViewController, UITextFieldDelegate {
+class TodoListTableViewController: UITableViewController {
     
     //MARK: - Variables
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    
     var items = [Item]()
-    
-    let dataFilePathURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("TodoList.plist")
-    
+
     var addItemAlert: UIAlertController!
+    
+    //MARK: - Outlets
+    @IBOutlet weak var searchBar: UISearchBar!
     
     //MARK: - Lifecycle Methods
     override func viewDidLoad() {
@@ -23,43 +27,50 @@ class TodoListTableViewController: UITableViewController, UITextFieldDelegate {
     
         configureTableView()
         configureAddItemAlert()
+        configureSearchBar()
         loadItems()
     }
     
-    //MARK: - Custom Methods
-    func loadItems() {
-        if let dataFilePathURL = dataFilePathURL {
-            do {
-                let data = try Data(contentsOf: dataFilePathURL)
-                
-                let decoder = PropertyListDecoder()
-                self.items = try decoder.decode([Item].self, from: data)
-            } catch let error {
-                print(error.localizedDescription)
-            }
-        }
-    }
-    
-    func saveItems() {
-        let encoder = PropertyListEncoder()
-        
+    //MARK: - CRUD Methods
+    func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest()) {
         do {
-            let data = try encoder.encode(items)
+            self.items = try context.fetch(request)
             
-            if let dataFilePathURL = dataFilePathURL {
-                try data.write(to: dataFilePathURL)
+            DispatchQueue.main.async {
+                self.tableView.reloadData()
             }
-            
         } catch let error {
             print(error.localizedDescription)
         }
     }
-    
+
+    func saveItems() {
+        do {
+            try context.save()
+
+            DispatchQueue.main.async {
+                self.tableView.reloadData()
+            }
+        } catch let error {
+            print(error.localizedDescription)
+        }
+    }
+
+    //MARK: - Custom Methods
     func configureTableView() {
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 80.0
+        
+        let panGesture = UIPanGestureRecognizer(target: self, action: #selector(hideKeyboard))
+        tableView.addGestureRecognizer(panGesture)
     }
     
+    @objc func hideKeyboard() {
+        DispatchQueue.main.async {
+            self.searchBar.endEditing(true)
+        }
+    }
+
     func configureAddItemAlert() {
         addItemAlert = UIAlertController(title: "Add New Todoey Item", message: "", preferredStyle: .alert)
         
@@ -76,12 +87,13 @@ class TodoListTableViewController: UITableViewController, UITextFieldDelegate {
             textField.text = ""
             action.isEnabled = false
 
-            let newItem = Item(title: itemText)
-            self.items.append(newItem)
+            let newItem = Item(context: self.context)
+            newItem.title = itemText
+            newItem.done = false
 
-            self.saveItems()
+            self.items.append(newItem)
             
-            self.tableView.reloadData()
+            self.saveItems()
         }
         
         addItemAction.isEnabled = false
@@ -97,6 +109,10 @@ class TodoListTableViewController: UITableViewController, UITextFieldDelegate {
             let addItemAction = self.addItemAlert.actions[0]
             addItemAction.isEnabled = false
         }))
+    }
+    
+    func configureSearchBar() {
+        searchBar.delegate = self
     }
     
     //MARK: - TableView DataSource Methods
@@ -125,28 +141,51 @@ class TodoListTableViewController: UITableViewController, UITextFieldDelegate {
         tableView.deselectRow(at: indexPath, animated: true)
         items[indexPath.row].done = !items[indexPath.row].done
         saveItems()
-        tableView.reloadRows(at: [indexPath], with: .automatic)
     }
     
     //MARK: - Actions
     @IBAction func addItemPressed(_ sender: UIBarButtonItem) {
         present(addItemAlert, animated: true, completion: nil)
     }
-    
-    //MARK: - TextField Delegate Methods
-    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+}
 
+//MARK: - TextField Delegate Methods
+extension TodoListTableViewController: UITextFieldDelegate {
+    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        
         let addItemAction = addItemAlert.actions[0]
         let text = textField.text! + string
         
         if range == NSRange(location: 0, length: 1) ||
-           text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             addItemAction.isEnabled = false
         } else {
             addItemAction.isEnabled = true
         }
-
+        
         return true
     }
 }
+
+//MARK: - SearchBar Delegate Methods
+extension TodoListTableViewController: UISearchBarDelegate {
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+
+        let request: NSFetchRequest<Item> = Item.fetchRequest()
+        
+        if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            request.predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchText)
+            request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
+        }
+
+        loadItems(with: request)
+    }
+
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        DispatchQueue.main.async {
+            self.searchBar.endEditing(true)
+        }
+    }
+}
+
 
