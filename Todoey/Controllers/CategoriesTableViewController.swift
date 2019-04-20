@@ -7,14 +7,14 @@
 //
 
 import UIKit
-import CoreData
+import RealmSwift
 
 class CategoriesTableViewController: UITableViewController {
-    
+
     //MARK: - Variables
-    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    let realm = try! Realm()
     
-    var categories = [Category]()
+    var categories: Results<Category>?
     
     var addCategoryAlert: UIAlertController!
     
@@ -29,29 +29,23 @@ class CategoriesTableViewController: UITableViewController {
         configureAddCategoryAlert()
         configureSearchBar()
         loadCategories()
-
-//        /* DataModel.sqlite file path */
-//        let sqliteFilePath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]
-//        print(sqliteFilePath)
     }
     
     //MARK: - CRUD Methods
-    func loadCategories(with request: NSFetchRequest<Category> = Category.fetchRequest()) {
-        do {
-            self.categories = try context.fetch(request)
-            
-            DispatchQueue.main.async {
-                self.tableView.reloadData()
-            }
-        } catch let error {
-            print(error.localizedDescription)
+    func loadCategories() {
+        categories = realm.objects(Category.self).sorted(byKeyPath: "dateCreated", ascending: true)
+
+        DispatchQueue.main.async {
+            self.tableView.reloadData()
         }
     }
     
-    func saveCategories() {
+    func save(category: Category) {
         do {
-            try context.save()
-            
+            try realm.write {
+                realm.add(category)
+            }
+
             DispatchQueue.main.async {
                 self.tableView.reloadData()
             }
@@ -91,12 +85,11 @@ class CategoriesTableViewController: UITableViewController {
             textField.text = ""
             action.isEnabled = false
             
-            let newCategory = Category(context: self.context)
+            let newCategory = Category()
             newCategory.name = categoryText
+            newCategory.dateCreated = Date()
 
-            self.categories.append(newCategory)
-            
-            self.saveCategories()
+            self.save(category: newCategory)
         }
         
         addCategoryAction.isEnabled = false
@@ -136,22 +129,36 @@ class CategoriesTableViewController: UITableViewController {
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return categories.count
+        
+        if let categories = self.categories,
+           categories.count > 0 {
+            return categories.count
+        }
+        
+        return 1
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let categoryCell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
         
-        let category = categories[indexPath.row]
-        
-        categoryCell.textLabel?.text = category.name
+        if let categories = self.categories,
+           categories.count > 0 {
+            let category = categories[indexPath.row]
+            categoryCell.textLabel?.text = category.name
+            categoryCell.isUserInteractionEnabled = true
+        } else {
+            categoryCell.textLabel?.text = "No Categories Added Yet"
+            categoryCell.isUserInteractionEnabled = false
+        }
 
         return categoryCell
     }
     
     // MARK: - TableView Delegate Methods
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        performSegue(withIdentifier: "goToItems", sender: categories[indexPath.row])
+        if let selectedCategory = categories?[indexPath.row] {
+            performSegue(withIdentifier: "goToItems", sender: selectedCategory)
+        }
     }
     
     //MARK: - Actions
@@ -181,15 +188,15 @@ extension CategoriesTableViewController: UITextFieldDelegate {
 //MARK: - SearchBar Delegate Methods
 extension CategoriesTableViewController: UISearchBarDelegate {
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-        
-        let request: NSFetchRequest<Category> = Category.fetchRequest()
-        
         if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            request.predicate = NSPredicate(format: "name CONTAINS[cd] %@", searchText)
-            request.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true)]
+            categories = realm.objects(Category.self).filter("name CONTAINS[cd] %@", searchText).sorted(byKeyPath: "name", ascending: true)
+            
+            DispatchQueue.main.async {
+                self.tableView.reloadData()
+            }
+        } else {
+            loadCategories()
         }
-        
-        loadCategories(with: request)
     }
     
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
