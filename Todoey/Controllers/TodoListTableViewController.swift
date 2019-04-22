@@ -9,7 +9,7 @@
 import UIKit
 import RealmSwift
 
-class TodoListTableViewController: UITableViewController {
+class TodoListTableViewController: SwipeTableViewController {
     
     //MARK: - Variables
     let realm = try! Realm()
@@ -44,12 +44,27 @@ class TodoListTableViewController: UITableViewController {
             self.tableView.reloadData()
         }
     }
+    
+    override func deleteObject(at indexPath: IndexPath) {
+        if let item = items?[indexPath.row] {
+            do {
+                try realm.write {
+                    realm.delete(item)
+                    
+                    DispatchQueue.main.async {
+                        self.tableView.reloadSections(IndexSet(integer: 0), with: .automatic)
+                    }
+                }
+            } catch let error {
+                print(error.localizedDescription)
+            }
+        }
+    }
 
     //MARK: - Custom Methods
     func configureTableView() {
-        tableView.rowHeight = UITableView.automaticDimension
-        tableView.estimatedRowHeight = 80.0
-        
+        tableView.rowHeight = 80.0
+
         let panGesture = UIPanGestureRecognizer(target: self, action: #selector(hideKeyboard))
         tableView.addGestureRecognizer(panGesture)
     }
@@ -82,9 +97,9 @@ class TodoListTableViewController: UITableViewController {
                     newItem.title = itemText
                     newItem.done = false
                     newItem.dateCreated = Date()
-                    
+
                     self.selectedCategory.items.append(newItem)
-                    
+ 
                     DispatchQueue.main.async {
                         self.tableView.reloadData()
                     }
@@ -129,7 +144,7 @@ class TodoListTableViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
-        let itemCell = tableView.dequeueReusableCell(withIdentifier: "ToDoItemCell", for: indexPath)
+        let itemCell = super.tableView(tableView, cellForRowAt: indexPath)
         
         if let items = self.items,
            items.count > 0 {

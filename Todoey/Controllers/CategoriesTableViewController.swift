@@ -9,7 +9,7 @@
 import UIKit
 import RealmSwift
 
-class CategoriesTableViewController: UITableViewController {
+class CategoriesTableViewController: SwipeTableViewController {
 
     //MARK: - Variables
     let realm = try! Realm()
@@ -53,12 +53,28 @@ class CategoriesTableViewController: UITableViewController {
             print(error.localizedDescription)
         }
     }
+
+    override func deleteObject(at indexPath: IndexPath) {
+        if let category = categories?[indexPath.row] {
+            do {
+                try realm.write {
+                    realm.delete(category.items)
+                    realm.delete(category)
+
+                    DispatchQueue.main.async {
+                        self.tableView.reloadSections(IndexSet(integer: 0), with: .automatic)
+                    }
+                }
+            } catch let error {
+                print(error.localizedDescription)
+            }
+        }
+    }
     
     //MARK: - Custom Methods
     func configureTableView() {
-        tableView.rowHeight = UITableView.automaticDimension
-        tableView.estimatedRowHeight = 80.0
-        
+        tableView.rowHeight = 80.0
+
         let panGesture = UIPanGestureRecognizer(target: self, action: #selector(hideKeyboard))
         tableView.addGestureRecognizer(panGesture)
     }
@@ -68,7 +84,7 @@ class CategoriesTableViewController: UITableViewController {
             self.searchBar.endEditing(true)
         }
     }
-    
+
     func configureAddCategoryAlert() {
         addCategoryAlert = UIAlertController(title: "Add New Todoey Category", message: "", preferredStyle: .alert)
         
@@ -139,8 +155,9 @@ class CategoriesTableViewController: UITableViewController {
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let categoryCell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
         
+        let categoryCell = super.tableView(tableView, cellForRowAt: indexPath)
+
         if let categories = self.categories,
            categories.count > 0 {
             let category = categories[indexPath.row]
