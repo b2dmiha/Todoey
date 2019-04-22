@@ -40,33 +40,13 @@ class TodoListTableViewController: SwipeTableViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
-        self.navigationController?.navigationBar.barTintColor = UIColor(hexString: selectedCategory.colorHexString)
-        self.navigationItem.title = selectedCategory.name
-        
-        if let color = UIColor(hexString: selectedCategory.colorHexString),
-           let contrastingColor = UIColor(contrastingBlackOrWhiteColorOn: color, isFlat: true) {
-            
-            self.navigationController?.navigationBar.largeTitleTextAttributes = [NSAttributedString.Key.foregroundColor: contrastingColor]
-            self.navigationController?.navigationBar.titleTextAttributes = [NSAttributedString.Key.foregroundColor: contrastingColor]
-            self.navigationItem.rightBarButtonItem?.tintColor = contrastingColor
-            self.navigationController?.navigationBar.items?.first?.backBarButtonItem?.tintColor = contrastingColor
-            
-            if contrastingColor.hexValue() == "#262626" {
-                self.setStatusBarStyle(.default)
-            } else {
-                self.setStatusBarStyle(.lightContent)
-            }
-            
-            self.searchBar.barTintColor = color
-        }
+        setCustomizedNavigationBar()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         
-        self.setStatusBarStyle(.lightContent)
-        self.navigationController?.navigationBar.barTintColor = UIColor(hexString: "#0A84FF")
-        self.navigationController?.navigationBar.largeTitleTextAttributes = [NSAttributedString.Key.foregroundColor: UIColor.white]
+        setDefaultNavigationBar()
     }
     
     //MARK: - CRUD Methods
@@ -93,8 +73,39 @@ class TodoListTableViewController: SwipeTableViewController {
             }
         }
     }
+    
+    //MARK: - Configuration Methods
+    func setCustomizedNavigationBar() {
+        self.navigationItem.title = selectedCategory.name
+        
+        if let color = UIColor(hexString: selectedCategory.colorHexString),
+           let contrastingColor = UIColor(contrastingBlackOrWhiteColorOn: color, isFlat: true) {
+            
+            self.navigationController?.navigationBar.barTintColor = color
+            
+            self.navigationController?.navigationBar.tintColor = contrastingColor
+            
+            self.navigationController?.navigationBar.largeTitleTextAttributes = [NSAttributedString.Key.foregroundColor: contrastingColor]
+            
+            self.navigationController?.navigationBar.titleTextAttributes = [NSAttributedString.Key.foregroundColor: contrastingColor]
+            
+            if contrastingColor.hexValue() == "#262626" {
+                self.setStatusBarStyle(.default)
+            } else {
+                self.setStatusBarStyle(.lightContent)
+            }
+            
+            self.searchBar.barTintColor = color
+        }
+    }
+    
+    func setDefaultNavigationBar() {
+        self.setStatusBarStyle(.lightContent)
+        self.navigationController?.navigationBar.barTintColor = UIColor(hexString: "#0A84FF")
+        self.navigationController?.navigationBar.tintColor = .white
+        self.navigationController?.navigationBar.largeTitleTextAttributes = [NSAttributedString.Key.foregroundColor: UIColor.white]
+    }
 
-    //MARK: - Custom Methods
     func configureTableView() {
         tableView.rowHeight = 80.0
         tableView.separatorStyle = .none

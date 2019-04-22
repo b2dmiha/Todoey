@@ -78,7 +78,7 @@ class CategoriesTableViewController: SwipeTableViewController {
         }
     }
     
-    //MARK: - Custom Methods
+    //MARK: - Configuration Methods
     func configureTableView() {
         tableView.rowHeight = 80.0
         tableView.separatorStyle = .none

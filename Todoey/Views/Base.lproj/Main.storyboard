@@ -39,7 +39,6 @@
                     </tableView>
                     <navigationItem key="navigationItem" title="Items" id="WPb-qg-sKe">
                         <barButtonItem key="rightBarButtonItem" systemItem="add" id="gRi-Db-Xee">
-                            <color key="tintColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                             <connections>
                                 <action selector="addItemPressed:" destination="nsY-Zc-l0N" id="4dF-qC-vum"/>
                             </connections>
@@ -107,9 +106,6 @@
                         </connections>
                     </tableView>
                     <navigationItem key="navigationItem" title="Categories" id="CLK-CJ-V14">
-                        <barButtonItem key="backBarButtonItem" title=" " id="zZv-k6-gHg">
-                            <color key="tintColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                        </barButtonItem>
                         <barButtonItem key="rightBarButtonItem" systemItem="add" id="dyD-Cy-Zfv">
                             <color key="tintColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                             <connections>
