@@ -8,6 +8,7 @@
 
 import UIKit
 import RealmSwift
+import ChameleonFramework
 
 class CategoriesTableViewController: SwipeTableViewController {
 
@@ -24,13 +25,19 @@ class CategoriesTableViewController: SwipeTableViewController {
     //MARK: - Lifecycle Methods
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         configureTableView()
         configureAddCategoryAlert()
         configureSearchBar()
         loadCategories()
     }
-    
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        
+        self.navigationController?.navigationBar.titleTextAttributes = [NSAttributedString.Key.foregroundColor: UIColor.white]
+    }
+
     //MARK: - CRUD Methods
     func loadCategories() {
         categories = realm.objects(Category.self).sorted(byKeyPath: "dateCreated", ascending: true)
@@ -74,15 +81,7 @@ class CategoriesTableViewController: SwipeTableViewController {
     //MARK: - Custom Methods
     func configureTableView() {
         tableView.rowHeight = 80.0
-
-        let panGesture = UIPanGestureRecognizer(target: self, action: #selector(hideKeyboard))
-        tableView.addGestureRecognizer(panGesture)
-    }
-    
-    @objc func hideKeyboard() {
-        DispatchQueue.main.async {
-            self.searchBar.endEditing(true)
-        }
+        tableView.separatorStyle = .none
     }
 
     func configureAddCategoryAlert() {
@@ -104,6 +103,7 @@ class CategoriesTableViewController: SwipeTableViewController {
             let newCategory = Category()
             newCategory.name = categoryText
             newCategory.dateCreated = Date()
+            newCategory.colorHexString = UIColor.randomColor().hexValue()
 
             self.save(category: newCategory)
         }
@@ -126,7 +126,7 @@ class CategoriesTableViewController: SwipeTableViewController {
     func configureSearchBar() {
         searchBar.delegate = self
     }
-    
+
     //MARK: - Navigation
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         guard let identifier = segue.identifier
@@ -157,12 +157,17 @@ class CategoriesTableViewController: SwipeTableViewController {
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
         let categoryCell = super.tableView(tableView, cellForRowAt: indexPath)
-
+        
         if let categories = self.categories,
            categories.count > 0 {
             let category = categories[indexPath.row]
             categoryCell.textLabel?.text = category.name
+            categoryCell.backgroundColor = UIColor(hexString: category.colorHexString)
             categoryCell.isUserInteractionEnabled = true
+            
+            if let contrastingColor = UIColor(contrastingBlackOrWhiteColorOn: categoryCell.backgroundColor, isFlat: true) {
+                categoryCell.textLabel?.textColor = contrastingColor
+            }
         } else {
             categoryCell.textLabel?.text = "No Categories Added Yet"
             categoryCell.isUserInteractionEnabled = false

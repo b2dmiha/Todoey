@@ -8,6 +8,7 @@
 
 import UIKit
 import RealmSwift
+import ChameleonFramework
 
 class TodoListTableViewController: SwipeTableViewController {
     
@@ -30,10 +31,42 @@ class TodoListTableViewController: SwipeTableViewController {
     //MARK: - Lifecycle Methods
     override func viewDidLoad() {
         super.viewDidLoad()
-    
+
         configureTableView()
         configureAddItemAlert()
         configureSearchBar()
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        self.navigationController?.navigationBar.barTintColor = UIColor(hexString: selectedCategory.colorHexString)
+        self.navigationItem.title = selectedCategory.name
+        
+        if let color = UIColor(hexString: selectedCategory.colorHexString),
+           let contrastingColor = UIColor(contrastingBlackOrWhiteColorOn: color, isFlat: true) {
+            
+            self.navigationController?.navigationBar.largeTitleTextAttributes = [NSAttributedString.Key.foregroundColor: contrastingColor]
+            self.navigationController?.navigationBar.titleTextAttributes = [NSAttributedString.Key.foregroundColor: contrastingColor]
+            self.navigationItem.rightBarButtonItem?.tintColor = contrastingColor
+            self.navigationController?.navigationBar.items?.first?.backBarButtonItem?.tintColor = contrastingColor
+            
+            if contrastingColor.hexValue() == "#262626" {
+                self.setStatusBarStyle(.default)
+            } else {
+                self.setStatusBarStyle(.lightContent)
+            }
+            
+            self.searchBar.barTintColor = color
+        }
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        
+        self.setStatusBarStyle(.lightContent)
+        self.navigationController?.navigationBar.barTintColor = UIColor(hexString: "#0A84FF")
+        self.navigationController?.navigationBar.largeTitleTextAttributes = [NSAttributedString.Key.foregroundColor: UIColor.white]
     }
     
     //MARK: - CRUD Methods
@@ -64,17 +97,9 @@ class TodoListTableViewController: SwipeTableViewController {
     //MARK: - Custom Methods
     func configureTableView() {
         tableView.rowHeight = 80.0
-
-        let panGesture = UIPanGestureRecognizer(target: self, action: #selector(hideKeyboard))
-        tableView.addGestureRecognizer(panGesture)
+        tableView.separatorStyle = .none
     }
     
-    @objc func hideKeyboard() {
-        DispatchQueue.main.async {
-            self.searchBar.endEditing(true)
-        }
-    }
-
     func configureAddItemAlert() {
         addItemAlert = UIAlertController(title: "Add New Todoey Item", message: "", preferredStyle: .alert)
         
@@ -151,6 +176,20 @@ class TodoListTableViewController: SwipeTableViewController {
             let item = items[indexPath.row]
             itemCell.textLabel?.text = item.title
             itemCell.accessoryType = item.done ? .checkmark : .none
+
+            let darkenPercentage = CGFloat(indexPath.row) / CGFloat(items.count)
+
+            if let color = UIColor(hexString: selectedCategory.colorHexString) {
+                itemCell.backgroundColor = color.darken(byPercentage: darkenPercentage)
+            } else {
+                itemCell.backgroundColor = UIColor.flatSkyBlue()?.darken(byPercentage: darkenPercentage)
+            }
+            
+            if let contrastingColor = UIColor(contrastingBlackOrWhiteColorOn: itemCell.backgroundColor, isFlat: true) {
+                itemCell.textLabel?.textColor = contrastingColor
+                itemCell.tintColor = contrastingColor
+            }
+
             itemCell.isUserInteractionEnabled = true
         } else {
             itemCell.textLabel?.text = "No Items Added Yet"
